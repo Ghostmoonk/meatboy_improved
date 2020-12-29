@@ -2,107 +2,142 @@
 
 public class MeatBoy : Character
 {
-    #region Mouvements
-    [SerializeField] float speed;
-
     #region Sauts
-    [SerializeField] int jumpsMax = 2;
-    int jumpWallCount = 0;
-    int jumpsCount;
-    #endregion
-
+    [Header("Jump")]
+    [Range(0f, 1f)]
+    [SerializeField] float fallOffGravityScale;
+    [SerializeField] float downFallGravityScale = 1.25f;
+    [SerializeField] int jumpsMax = 1;
+    int jumpsCount = 0;
     #endregion
 
     #region Prefabs
-    [SerializeField] GameObject gouttePrefab;
-    [SerializeField] float delayGoutte;
-    float cptGoutte;
+    [Header("Meatboy Particles")]
+    [SerializeField] ParticleSystem runParticles;
+    bool runParticlesPlaying = false;
+    [SerializeField] ParticleSystem landParticles;
     #endregion
 
     #region Respawn
-    Vector3 defaultPosition;
+    Vector3 respawnPosition;
     #endregion
 
-    #region WallJump
-    Wall lastWallJumped;
-    #endregion
+    protected override void Awake()
+    {
+        base.Awake();
+        groundChecker.OnGrounded += Landing;
+    }
 
     private void Start()
     {
-        defaultPosition = transform.position;
+        respawnPosition = transform.position;
     }
 
-    protected override void Update()
+    bool shouldJump = false;
+
+    void Update()
     {
-        mouvement.x = Input.GetAxis("Horizontal") * speed;
-        base.Update();
+        mouvement.x = Input.GetAxis("Horizontal");
 
-        if (controller.isGrounded)
+        //Look if we can and should jump
+        if (groundChecker.IsGrounded && Input.GetButtonDown("Jump") && jumpsCount < jumpsMax)
         {
-            if (jumpWallCount > 0)
-                jumpWallCount = 0;
-
-            mouvement.y = 0f;
+            shouldJump = true;
+        }
+        //If we shouldn't jump and already in the air, pressing "Jump", slow down gravityScale to reduce falling speed
+        else if (!groundChecker.IsGrounded && Input.GetButton("Jump"))
+        {
+            rb2D.gravityScale = fallOffGravityScale;
+        }
+        else if (!groundChecker.IsGrounded && Input.GetAxis("Vertical") < 0f)
+        {
+            Debug.Log("DOWN");
+            rb2D.gravityScale = Mathf.Lerp(1.0f, downFallGravityScale, Mathf.Abs(Input.GetAxis("Vertical")));
+        }
+        else
+        {
+            rb2D.gravityScale = 1.0f;
             if (jumpsCount > 0)
                 jumpsCount = 0;
         }
 
-        #region Saut
+        Turn((int)Input.GetAxisRaw("Horizontal"));
 
-        if (Input.GetButtonDown("Jump") && jumpsCount < jumpsMax + jumpWallCount)
+        //If particles aren't playing and there is movement, play the animation
+        if (!runParticlesPlaying && mouvement != Vector2.zero)
         {
-            mouvement.y = jumpSpeed;
-            jumpsCount++;
+            runParticles.Play();
+            runParticlesPlaying = true;
         }
-
-        #endregion
-
-        controller.Move(mouvement * Time.deltaTime);
-
-        if (mouvement.x != 0f)
+        //Otherwise, stop it
+        else if (runParticlesPlaying && mouvement == Vector2.zero)
         {
-            cptGoutte -= Time.deltaTime;
+            runParticles.Stop();
+            runParticlesPlaying = false;
         }
-
-        if (cptGoutte < 0)
-        {
-            Goutte goutteInstance = Instantiate(gouttePrefab,
-            new Vector3(transform.position.x,
-            transform.position.y - GetComponent<Collider>().bounds.extents.y,
-            transform.position.z),
-            Quaternion.identity).GetComponent<Goutte>();
-            goutteInstance.SetVelocity(new Vector3(-mouvement.x, -mouvement.y, goutteInstance.GetVelocity().z));
-            cptGoutte = delayGoutte;
-        }
-
-        if (controller.isGrounded && lastWallJumped != null)
-            lastWallJumped = null;
     }
 
-    public void Die()
+    private void FixedUpdate()
     {
-        controller.enabled = false;
-        transform.position = defaultPosition;
-        controller.enabled = true;
+        Move(mouvement.x);
+        if (shouldJump)
+        {
+            Jump();
+            shouldJump = false;
+        }
+    }
+
+    private void LateUpdate()
+    {
+        //Animation
+        animator.SetFloat("HorizontalMovement", Mathf.Lerp(0f, 1f, Mathf.Abs(rb2D.velocity.x)));
+        animator.SetBool("InTheAir", !groundChecker.IsGrounded);
+        if (!groundChecker.IsGrounded)
+            animator.SetFloat("VerticalMovement", rb2D.velocity.y);
+
+        //Run Particles
+        ParticleSystem.ShapeModule runParticlesShape = runParticles.shape;
+        runParticlesShape.rotation = new Vector3(lookingDirection * Mathf.Abs(runParticlesShape.rotation.x), runParticlesShape.rotation.y, runParticlesShape.rotation.z);
+    }
+
+    public override void Die()
+    {
+        rb2D.isKinematic = true;
+        transform.position = respawnPosition;
+        rb2D.isKinematic = false;
 
         mouvement = Vector2.zero;
     }
 
-    public Wall GetLastWallJumped() => lastWallJumped;
-
-    public void SetLastWallJumped(Wall wall) => lastWallJumped = wall;
-
-    public void AddJumpWallCount(int amount) => jumpWallCount += amount;
-
-    private void OnControllerColliderHit(ControllerColliderHit hit)
+    public override void Jump()
     {
-        if (hit.gameObject.GetComponent<Wall>() && !controller.isGrounded)
+        rb2D.velocity = Vector2.up * jumpSpeed * Time.deltaTime;
+        jumpsCount++;
+    }
+
+    public override void Move(float horizontalAxis)
+    {
+        //Move the character by its rigidbody velocity
+        Vector2 velocity = rb2D.velocity;
+        velocity.x = horizontalAxis * speed * Time.deltaTime;
+        rb2D.velocity = velocity;
+    }
+
+    void Turn(int direction)
+    {
+        if (direction != lookingDirection && direction != 0)
         {
-            if (lastWallJumped != hit.gameObject.GetComponent<Wall>())
-            {
-                AddJumpWallCount(1);
-                SetLastWallJumped(hit.gameObject.GetComponent<Wall>());
-            }
+            //Turn the character depending on where he is going
+            if (direction > 0)
+                transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+            else if (direction < 0)
+                transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+            lookingDirection = direction;
         }
+    }
+
+    void Landing()
+    {
+        //landParticles.Play();
     }
 }
