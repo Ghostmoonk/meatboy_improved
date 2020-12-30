@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Collider2D))]
@@ -12,6 +13,7 @@ public abstract class Character : MonoBehaviour
     protected Rigidbody2D rb2D { get; set; }
     protected Animator animator { get; set; }
     protected Collider2D col2D { get; set; }
+    protected SpriteRenderer spriteRenderer { get; set; }
     #endregion
 
     #region Mouvements
@@ -25,8 +27,14 @@ public abstract class Character : MonoBehaviour
 
     [SerializeField] protected GroundChecker groundChecker;
 
-    protected bool isDead { get; set; }
-    protected bool isGrounded { get; set; }
+    protected bool isDead;
+    protected abstract bool isGrounded { get; }
+    protected abstract bool isWalled { get; }
+
+    #region Events
+    [SerializeField] protected UnityEvent OnDie;
+    #endregion
+
 
     public abstract void Jump();
 
@@ -39,8 +47,8 @@ public abstract class Character : MonoBehaviour
         rb2D = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         col2D = GetComponent<Collider2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
 
         isDead = false;
-        isGrounded = false;
     }
 }

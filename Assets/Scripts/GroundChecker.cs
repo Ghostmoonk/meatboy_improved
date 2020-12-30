@@ -10,11 +10,9 @@ public class GroundChecker : MonoBehaviour
 
     [SerializeField] LayerMask groundMask;
 
-    [SerializeField]
-    private Collider2D col2D;
+    [SerializeField] private Collider2D col2D;
 
-    [SerializeField]
-    private float rayDistance = 0.5f;
+    [SerializeField] private float rayDistance = 0.5f;
     const string GROUND_LAYER = "Ground";
 
     public bool IsGrounded { get { return m_IsGrounded; } }

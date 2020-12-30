@@ -74,7 +74,7 @@ GameObject:
   - component: {fileID: 2834984080414028326}
   m_Layer: 0
   m_Name: Bramble_Trap_2
-  m_TagString: Untagged
+  m_TagString: Trap
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -164,8 +164,8 @@ MonoBehaviour:
   - {fileID: 2834984080623827744}
   - {fileID: 2834984079714639260}
   m_Bounds:
-    m_Center: {x: 0.26059526, y: -1.1737187, z: 0}
-    m_Extent: {x: 0.7079515, y: 1.2043407, z: 0}
+    m_Center: {x: 0.2605952, y: -1.1737187, z: 0}
+    m_Extent: {x: 0.7079514, y: 1.2043407, z: 0}
   m_UseBatching: 1
   m_AlwaysUpdate: 1
 --- !u!1 &2834984080623827745
@@ -211,7 +211,7 @@ GameObject:
   - component: {fileID: 2834984081470376921}
   m_Layer: 0
   m_Name: bone_1
-  m_TagString: Untagged
+  m_TagString: Trap
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -241,7 +241,7 @@ PolygonCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
