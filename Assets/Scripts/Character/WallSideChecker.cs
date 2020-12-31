@@ -29,6 +29,7 @@ public class WallSideChecker : MonoBehaviour
     bool m_IsWalled = false;
 
     Side sideToCheck = Side.Right;
+    Side sideWalled;
 
     List<Vector3Int> lastTilesPosCol = new List<Vector3Int>();
 
@@ -37,71 +38,57 @@ public class WallSideChecker : MonoBehaviour
         Vector2 top = Vector2.zero;
         Vector2 center = Vector2.zero;
         Vector2 bottom = Vector2.zero;
-        bool walled1 = false;
-        bool walled2 = false;
-        bool walled3 = false;
+        bool leftWalled = false;
+        bool rightWalled = false;
 
-        if (sideToCheck == Side.Right)
+        top = new Vector2(col2D.bounds.center.x, col2D.bounds.max.y);
+        center = new Vector2(col2D.bounds.center.x, col2D.bounds.center.y);
+        bottom = new Vector2(col2D.bounds.center.x, col2D.bounds.min.y + 0.01f);
+
+
+        RaycastHit2D rightHitTop = Physics2D.Raycast(top + new Vector2(col2D.bounds.extents.x, 0f), new Vector2(1f, 0f), rayDist, wallMask);
+        RaycastHit2D rightHitCenter = Physics2D.Raycast(center + new Vector2(col2D.bounds.extents.x, 0f), new Vector2(1f, 0f), rayDist, wallMask);
+        RaycastHit2D rightHitBottom = Physics2D.Raycast(bottom + new Vector2(col2D.bounds.extents.x, 0f), new Vector2(1f, 0f), rayDist, wallMask);
+
+        Debug.DrawRay(top + new Vector2(col2D.bounds.extents.x, 0f), new Vector2(rayDist, 0f), Color.blue, Time.deltaTime);
+        Debug.DrawRay(center + new Vector2(col2D.bounds.extents.x, 0f), new Vector2(rayDist, 0f), Color.blue, Time.deltaTime);
+        Debug.DrawRay(bottom + new Vector2(col2D.bounds.extents.x, 0f), new Vector2(rayDist, 0f), Color.blue, Time.deltaTime);
+
+        RaycastHit2D leftHitTop = Physics2D.Raycast(top - new Vector2(col2D.bounds.extents.x, 0f), new Vector2(-1f, 0f), rayDist, wallMask);
+        RaycastHit2D leftHitCenter = Physics2D.Raycast(center - new Vector2(col2D.bounds.extents.x, 0f), new Vector2(-1f, 0f), rayDist, wallMask);
+        RaycastHit2D lefttHitBottom = Physics2D.Raycast(bottom - new Vector2(col2D.bounds.extents.x, 0f), new Vector2(-1f, 0f), rayDist, wallMask);
+
+        Debug.DrawRay(top - new Vector2(col2D.bounds.extents.x, 0f), new Vector2(-rayDist, 0f), Color.blue, Time.deltaTime);
+        Debug.DrawRay(center - new Vector2(col2D.bounds.extents.x, 0f), new Vector2(-rayDist, 0f), Color.blue, Time.deltaTime);
+        Debug.DrawRay(bottom - new Vector2(col2D.bounds.extents.x, 0f), new Vector2(-rayDist, 0f), Color.blue, Time.deltaTime);
+
+
+        leftWalled = leftHitTop.collider != null || leftHitCenter.collider != null || lefttHitBottom.collider != null;
+        rightWalled = rightHitTop.collider != null || rightHitCenter.collider != null || rightHitBottom.collider != null;
+
+        if (rightWalled)
         {
-            top = new Vector2(col2D.bounds.max.x, col2D.bounds.max.y);
-            center = new Vector2(col2D.bounds.max.x, col2D.bounds.center.y);
-            bottom = new Vector2(col2D.bounds.max.x, col2D.bounds.min.y + 0.01f);
-            RaycastHit2D hit1 = Physics2D.Raycast(top, new Vector2(1f, 0f), rayDist, wallMask);
-            Debug.DrawRay(top, new Vector2(rayDist, 0f), Color.blue, Time.deltaTime);
+            sideWalled = Side.Right;
 
-            walled1 = hit1.collider != null;
-
-            RaycastHit2D hit2 = Physics2D.Raycast(center, new Vector2(1f, 0f), rayDist, wallMask);
-            Debug.DrawRay(center, new Vector2(rayDist, 0f), Color.red, Time.deltaTime);
-            walled2 = hit2.collider != null;
-
-            if (walled2)
+            List<Vector3Int> contactTilesPos = GetYSurroundedTiles(new Vector3Int((int)rightHitCenter.point.x, (int)rightHitCenter.point.y, 0));
+            if (!lastTilesPosCol.Contains(contactTilesPos[0]))
             {
-                List<Vector3Int> contactTilesPos = GetYSurroundedTiles(new Vector3Int((int)hit2.point.x, (int)hit2.point.y, 0));
-                if (!lastTilesPosCol.Contains(contactTilesPos[0]))
-                {
-                    lastTilesPosCol = contactTilesPos;
-                    Debug.Log("New walled");
-                    onNewWalled();
-                }
+                lastTilesPosCol = contactTilesPos;
+                onNewWalled();
             }
-
-            RaycastHit2D hit3 = Physics2D.Raycast(bottom, new Vector2(1f, 0f), rayDist, wallMask);
-            Debug.DrawRay(bottom, new Vector2(rayDist, 0f), Color.black, Time.deltaTime);
-            walled3 = hit3.collider != null;
         }
-        else
+        else if (leftWalled)
         {
-            top = new Vector2(col2D.bounds.min.x, col2D.bounds.max.y);
-            center = new Vector2(col2D.bounds.min.x, col2D.bounds.center.y);
-            bottom = new Vector2(col2D.bounds.min.x, col2D.bounds.min.y + 0.01f);
+            sideWalled = Side.Left;
+            List<Vector3Int> contactTilesPos = GetYSurroundedTiles(new Vector3Int((int)leftHitCenter.point.x - 1, (int)leftHitCenter.point.y, 0));
 
-            RaycastHit2D hit1 = Physics2D.Raycast(top, new Vector2(-1f, 0f), rayDist, wallMask);
-            Debug.DrawRay(top, new Vector2(-rayDist, 0f), Color.blue, Time.deltaTime);
-
-            walled1 = hit1.collider != null;
-
-            RaycastHit2D hit2 = Physics2D.Raycast(center, new Vector2(-1f, 0f), rayDist, wallMask);
-            Debug.DrawRay(center, new Vector2(-rayDist, 0f), Color.red, Time.deltaTime);
-            walled2 = hit2.collider != null;
-
-            if (walled2)
+            if (!lastTilesPosCol.Contains(contactTilesPos[0]))
             {
-                List<Vector3Int> contactTilesPos = GetYSurroundedTiles(new Vector3Int((int)hit2.point.x - 1, (int)hit2.point.y, 0));
-
-                if (!lastTilesPosCol.Contains(contactTilesPos[0]))
-                {
-                    lastTilesPosCol = contactTilesPos;
-                    onNewWalled();
-                }
+                lastTilesPosCol = contactTilesPos;
+                onNewWalled();
             }
-
-            RaycastHit2D hit3 = Physics2D.Raycast(bottom, new Vector2(-1f, 01f), rayDist, wallMask);
-            Debug.DrawRay(bottom, new Vector2(-rayDist, 0f), Color.black, Time.deltaTime);
-            walled3 = hit3.collider != null;
         }
-
-        bool walled = walled1 || walled2 || walled3;
+        bool walled = leftWalled || rightWalled;
 
         if (walled && !m_IsWalled)
         {
@@ -111,7 +98,7 @@ public class WallSideChecker : MonoBehaviour
             }
         }
 
-        m_IsWalled = walled;
+        m_IsWalled = leftWalled || rightWalled;
     }
 
     List<Vector3Int> GetYSurroundedTiles(Vector3Int initialTilePos)
@@ -155,6 +142,9 @@ public class WallSideChecker : MonoBehaviour
     }
 
     public void ResetLastWall() => lastTilesPosCol.Clear();
+
     public void SetSideToCheck(Side newSideToCheck) => sideToCheck = newSideToCheck;
+
+    public Side GetSideWalled() => sideWalled;
 
 }

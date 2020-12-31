@@ -8,10 +8,21 @@ public class Collectable : MonoBehaviour, ICollectable
     [SerializeField] UnityEvent OnCollect;
     [SerializeField] int scoreAmount = 1;
     bool isCollected = false;
+
+    [SerializeField] AudioSource collectableSource;
+    [SerializeField] string collectedSoundName;
+
+    private void Awake()
+    {
+        if (collectableSource == null && TryGetComponent(out AudioSource component))
+            collectableSource = component;
+    }
+
     public void Collect()
     {
         OnCollect?.Invoke();
         ScoreManager.Instance.UpdateCollectedAmount(scoreAmount);
+        SoundManager.Instance.PlaySound(collectableSource, collectedSoundName);
     }
     public int GetScoreAmount() => scoreAmount;
 
@@ -23,6 +34,8 @@ public class Collectable : MonoBehaviour, ICollectable
     public bool GetIsCollected() => isCollected;
 
     public void SetIsCollected(bool toggle) => isCollected = toggle;
+
+    public void PlayCollectedSound() => SoundManager.Instance.PlaySound(collectableSource, collectedSoundName);
 }
 
 public interface ICollectable

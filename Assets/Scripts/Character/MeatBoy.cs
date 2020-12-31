@@ -31,17 +31,22 @@ public class MeatBoy : Character
     [Header("WallJump & Sliding")]
     [SerializeField] WallSideChecker wallSideChecker;
     bool wallSliding = false;
-    bool wallJumping = false;
     [SerializeField] float wallSlidingSpeed = 2f;
     float wallJumpTimer = 0f;
     float wallJumpMaxTime;
     [SerializeField] float walledYJumpSpeed;
-    [Tooltip("Intensité et durée de la vélocité en X lors du walljump")]
-    [SerializeField] AnimationCurve wallJumpXCurve;
     int wallJumpDir = 1;
     [SerializeField] Vector2 wallJumpForce;
     #endregion
 
+    #region Audio
+    [Header("Audio")]
+    [SerializeField] AudioSource footAudioSource;
+    [SerializeField] AudioSource bodyAudioSource;
+    [SerializeField] string footstepSoundName;
+    [SerializeField] string jumpSoundName;
+    [SerializeField] string landingSoundName;
+    #endregion
     protected override void Awake()
     {
         base.Awake();
@@ -55,7 +60,6 @@ public class MeatBoy : Character
     private void Start()
     {
         respawnPosition = transform.position;
-        wallJumpMaxTime = wallJumpXCurve.keys[wallJumpXCurve.length - 1].time;
         wallJumpTimer = wallJumpMaxTime;
     }
 
@@ -72,17 +76,8 @@ public class MeatBoy : Character
 
             //Look if we can jump
             if ((groundChecker.IsGrounded || wallSideChecker.IsWalled) && Input.GetButtonDown("Jump") && jumpsCount < jumpsMax)
-            {
                 shouldJump = true;
 
-                if (wallSliding)
-                {
-                    wallJumping = true;
-                    wallJumpDir = -lookingDirection;
-                    //Start timer
-                    wallJumpTimer = 0f;
-                }
-            }
             //If we shouldn't jump and already in the air, pressing "Jump", slow down gravityScale to reduce falling speed
             #region Slow Fall
             else if (!groundChecker.IsGrounded && Input.GetButton("Jump"))
@@ -97,43 +92,33 @@ public class MeatBoy : Character
 
             #endregion
 
-            if (wallJumping)
-            {
-                if (wallJumpTimer < wallJumpMaxTime)
-                {
-                    wallJumpTimer += Time.deltaTime;
-
-                }
-                else
-                {
-                    wallJumpTimer = wallJumpMaxTime;
-                    wallJumping = false;
-                }
-            }
-
             if ((int)Input.GetAxisRaw("Horizontal") != 0f && (int)Input.GetAxisRaw("Horizontal") != lookingDirection)
                 Turn((int)Input.GetAxisRaw("Horizontal"));
 
             #region Run Particles
             //If particles aren't playing and there is movement, play the animation
-            if (!runParticlesPlaying && mouvement != Vector2.zero)
+            if (!runParticlesPlaying && rb2D.velocity != Vector2.zero)
             {
                 runParticles.Play();
                 runParticlesPlaying = true;
             }
             //Otherwise, stop it
-            else if (runParticlesPlaying && mouvement == Vector2.zero)
+            else if (runParticlesPlaying && rb2D.velocity == Vector2.zero)
             {
                 runParticles.Stop();
                 runParticlesPlaying = false;
             }
             #endregion
 
-            if (!isGrounded && isWalled && mouvement.x != 0f)
+            if (!isGrounded && isWalled && (wallSideChecker.GetSideWalled() == Side.Right && mouvement.x > 0f || wallSideChecker.GetSideWalled() == Side.Left && mouvement.x < 0f))
                 wallSliding = true;
 
             else
                 wallSliding = false;
+        }
+        else if (mouvement != Vector2.zero)
+        {
+            mouvement = Vector2.zero;
         }
 
         if (transform.position.y < yDeathLimit && !isDead)
@@ -147,11 +132,7 @@ public class MeatBoy : Character
         if (wallSliding)
             rb2D.velocity = new Vector2(rb2D.velocity.x, Mathf.Clamp(rb2D.velocity.y, -wallSlidingSpeed, float.MaxValue));
 
-        if (!wallSideChecker.IsWalled)
-            Move(mouvement.x);
-
-        else if (wallJumping)
-            Move(mouvement.x);
+        Move(mouvement.x);
 
         if (shouldJump)
         {
@@ -197,7 +178,7 @@ public class MeatBoy : Character
 
     public override void Jump()
     {
-        if (!wallJumping)
+        if (isGrounded)
             //rb2D.velocity += Vector2.up * jumpSpeed * Time.deltaTime;
             rb2D.AddForce(Vector2.up * jumpSpeed * Time.fixedDeltaTime, ForceMode2D.Impulse);
 
@@ -205,11 +186,14 @@ public class MeatBoy : Character
         {
             Turn(-lookingDirection);
             //rb2D.AddForce(new Vector2(3500f, 1500f) * Time.fixedDeltaTime);
-            Vector2 direction = lookingDirection == 1 ? new Vector2(1f, 1f) : new Vector2(-1f, 1f);
+            Debug.Log(wallSideChecker.GetSideWalled());
+            Vector2 direction = wallSideChecker.GetSideWalled() == Side.Right ? new Vector2(-1f, 1f) : new Vector2(1f, 1f);
             direction = direction.normalized;
+            Debug.Log("Force ajoutée : " + direction * jumpSpeed * Time.fixedDeltaTime);
             rb2D.AddForce(direction * jumpSpeed * Time.fixedDeltaTime, ForceMode2D.Impulse);
         }
 
+        PlayFootSound(jumpSoundName);
         jumpsCount++;
     }
 
@@ -246,14 +230,13 @@ public class MeatBoy : Character
     void Landing()
     {
         landParticles.Play();
-        if (wallJumping)
-            wallJumping = false;
     }
 
     void ResetWallJump()
     {
         wallJumpTimer = wallJumpMaxTime;
     }
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.tag == "Trap" && !isDead)
@@ -273,4 +256,19 @@ public class MeatBoy : Character
     public void SetCheckpointPosition(Vector3 newCheckpointPosition) => respawnPosition = newCheckpointPosition;
 
     public void ResetVelocity() => rb2D.velocity = Vector2.zero;
+
+    #region Sound
+
+
+    public void PlayFootSound(string soundName)
+    {
+        SoundManager.Instance.PlaySound(footAudioSource, soundName);
+    }
+
+    public void PlayBodySound(string soundName)
+    {
+        SoundManager.Instance.PlaySound(bodyAudioSource, soundName);
+    }
+
+    #endregion
 }
