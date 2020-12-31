@@ -7,7 +7,7 @@ public class CameraPlayer : MonoBehaviour
 
 	public Transform target;
 
-	public float smoothSpeed = 0.5f;
+	public float smoothSpeed = 0.9f;
 	public Vector3 offset;
 
 	void Update()
