@@ -11,10 +11,13 @@ public class Checkpoint : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.GetComponent<Character>() && !triggered)
+        if (collision.GetComponent<MeatBoy>() && !triggered)
         {
             OnTrigger?.Invoke();
             triggered = true;
+
+            collision.GetComponent<MeatBoy>().SetCheckpointPosition(transform.position);
+            collision.GetComponent<MeatBoy>().ResetVelocity();
         }
     }
 }

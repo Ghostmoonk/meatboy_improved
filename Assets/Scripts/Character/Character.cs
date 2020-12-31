@@ -20,6 +20,7 @@ public abstract class Character : MonoBehaviour
     [Header("Character movements")]
     [SerializeField] protected float speed;
     [SerializeField] protected float jumpSpeed;
+    protected bool canMove = true;
 
     protected int lookingDirection = 1;
     protected Vector2 mouvement;

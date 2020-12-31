@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 
 public enum Side
@@ -17,6 +18,8 @@ public class WallSideChecker : MonoBehaviour
     public event NewWallTouched onNewWalled;
 
     [SerializeField] LayerMask wallMask;
+    [SerializeField] Tilemap tilemap;
+    [SerializeField] TilemapCollider2D tilemapCol;
 
     [SerializeField] private Collider2D col2D;
     [SerializeField] private float rayDist = 0.1f;
@@ -27,8 +30,7 @@ public class WallSideChecker : MonoBehaviour
 
     Side sideToCheck = Side.Right;
 
-    Collider2D lastWallCol = null;
-    Collider2D currentWallCol = null;
+    List<Vector3Int> lastTilesPosCol = new List<Vector3Int>();
 
     private void Update()
     {
@@ -38,6 +40,7 @@ public class WallSideChecker : MonoBehaviour
         bool walled1 = false;
         bool walled2 = false;
         bool walled3 = false;
+
         if (sideToCheck == Side.Right)
         {
             top = new Vector2(col2D.bounds.max.x, col2D.bounds.max.y);
@@ -52,12 +55,15 @@ public class WallSideChecker : MonoBehaviour
             Debug.DrawRay(center, new Vector2(rayDist, 0f), Color.red, Time.deltaTime);
             walled2 = hit2.collider != null;
 
-            currentWallCol = walled2 ? hit2.collider : null;
-
-            if (currentWallCol != lastWallCol && currentWallCol != null)
+            if (walled2)
             {
-                lastWallCol = currentWallCol;
-                onNewWalled();
+                List<Vector3Int> contactTilesPos = GetYSurroundedTiles(new Vector3Int((int)hit2.point.x, (int)hit2.point.y, 0));
+                if (!lastTilesPosCol.Contains(contactTilesPos[0]))
+                {
+                    lastTilesPosCol = contactTilesPos;
+                    Debug.Log("New walled");
+                    onNewWalled();
+                }
             }
 
             RaycastHit2D hit3 = Physics2D.Raycast(bottom, new Vector2(1f, 0f), rayDist, wallMask);
@@ -79,12 +85,15 @@ public class WallSideChecker : MonoBehaviour
             Debug.DrawRay(center, new Vector2(-rayDist, 0f), Color.red, Time.deltaTime);
             walled2 = hit2.collider != null;
 
-            currentWallCol = walled2 ? hit2.collider : null;
-
-            if (currentWallCol != lastWallCol && currentWallCol != null)
+            if (walled2)
             {
-                lastWallCol = currentWallCol;
-                onNewWalled();
+                List<Vector3Int> contactTilesPos = GetYSurroundedTiles(new Vector3Int((int)hit2.point.x - 1, (int)hit2.point.y, 0));
+
+                if (!lastTilesPosCol.Contains(contactTilesPos[0]))
+                {
+                    lastTilesPosCol = contactTilesPos;
+                    onNewWalled();
+                }
             }
 
             RaycastHit2D hit3 = Physics2D.Raycast(bottom, new Vector2(-1f, 01f), rayDist, wallMask);
@@ -105,7 +114,47 @@ public class WallSideChecker : MonoBehaviour
         m_IsWalled = walled;
     }
 
+    List<Vector3Int> GetYSurroundedTiles(Vector3Int initialTilePos)
+    {
+        List<Vector3Int> tilesPos = new List<Vector3Int>();
+        int increment = 1;
+        bool checkTop = true;
+        bool checkBottom = true;
+        tilesPos.Add(initialTilePos);
+        do
+        {
+            if (checkBottom)
+            {
+                TileBase newTile = tilemap.GetTile(new Vector3Int(initialTilePos.x, initialTilePos.y - increment, initialTilePos.z));
+                if (newTile != null)
+                {
+                    tilesPos.Add(new Vector3Int(initialTilePos.x, initialTilePos.y - increment, initialTilePos.z));
+                }
+                else
+                {
+                    checkBottom = false;
+                }
+            }
+
+            if (checkTop)
+            {
+                TileBase newTile = tilemap.GetTile(new Vector3Int(initialTilePos.x, initialTilePos.y + increment, initialTilePos.z));
+                if (newTile != null)
+                {
+                    tilesPos.Add(new Vector3Int(initialTilePos.x, initialTilePos.y + increment, initialTilePos.z));
+                }
+                else
+                {
+                    checkTop = false;
+                }
+            }
+            increment += 1;
+        } while (checkTop || checkBottom);
+
+        return tilesPos;
+    }
+
+    public void ResetLastWall() => lastTilesPosCol.Clear();
     public void SetSideToCheck(Side newSideToCheck) => sideToCheck = newSideToCheck;
 
-    public void ResetLastWall() => lastWallCol = null;
 }

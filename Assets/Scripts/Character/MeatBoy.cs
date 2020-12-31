@@ -9,17 +9,19 @@ public class MeatBoy : Character
     [SerializeField] float downFallGravityScale = 1.25f;
     [SerializeField] int jumpsMax = 1;
     int jumpsCount = 0;
+    [SerializeField] float airControl = 10f;
     #endregion
 
     #region Prefabs
     [Header("Meatboy Particles")]
     [SerializeField] ParticleSystem runParticles;
+    [SerializeField] ParticleSystem deathParticles;
     bool runParticlesPlaying = false;
     [SerializeField] ParticleSystem landParticles;
     #endregion
 
     #region Respawn
-    [Tooltip("Meurs instantanément en dessous de cette position")]
+    [Tooltip("Meurt instantanément en dessous de cette position")]
     [SerializeField] float yDeathLimit = -5f;
     Vector3 respawnPosition;
 
@@ -37,8 +39,9 @@ public class MeatBoy : Character
     [Tooltip("Intensité et durée de la vélocité en X lors du walljump")]
     [SerializeField] AnimationCurve wallJumpXCurve;
     int wallJumpDir = 1;
-
+    [SerializeField] Vector2 wallJumpForce;
     #endregion
+
     protected override void Awake()
     {
         base.Awake();
@@ -63,12 +66,10 @@ public class MeatBoy : Character
 
     void Update()
     {
-        if (!isDead)
+        if (!isDead && canMove)
         {
             mouvement.x = Input.GetAxis("Horizontal");
 
-            if (!isGrounded)
-                rb2D.velocity -= new Vector2(0, 9.81f * Time.deltaTime * rb2D.gravityScale);
             //Look if we can jump
             if ((groundChecker.IsGrounded || wallSideChecker.IsWalled) && Input.GetButtonDown("Jump") && jumpsCount < jumpsMax)
             {
@@ -77,7 +78,7 @@ public class MeatBoy : Character
                 if (wallSliding)
                 {
                     wallJumping = true;
-                    wallJumpDir = lookingDirection;
+                    wallJumpDir = -lookingDirection;
                     //Start timer
                     wallJumpTimer = 0f;
                 }
@@ -144,12 +145,11 @@ public class MeatBoy : Character
     private void FixedUpdate()
     {
         if (wallSliding)
-        {
             rb2D.velocity = new Vector2(rb2D.velocity.x, Mathf.Clamp(rb2D.velocity.y, -wallSlidingSpeed, float.MaxValue));
-        }
 
         if (!wallSideChecker.IsWalled)
             Move(mouvement.x);
+
         else if (wallJumping)
             Move(mouvement.x);
 
@@ -173,10 +173,7 @@ public class MeatBoy : Character
         runParticlesShape.rotation = new Vector3(lookingDirection * Mathf.Abs(runParticlesShape.rotation.x), runParticlesShape.rotation.y, runParticlesShape.rotation.z);
     }
 
-    void ResetJumpCount()
-    {
-        jumpsCount = 0;
-    }
+    void ResetJumpCount() => jumpsCount = 0;
 
     public override void Die()
     {
@@ -190,20 +187,27 @@ public class MeatBoy : Character
     public void Respawn()
     {
         transform.position = respawnPosition;
+        ResetVelocity();
         isDead = false;
         spriteRenderer.enabled = true;
         col2D.enabled = true;
+        deathParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        runParticles.Clear();
     }
 
     public override void Jump()
     {
         if (!wallJumping)
-            rb2D.velocity += Vector2.up * jumpSpeed * Time.deltaTime;
+            //rb2D.velocity += Vector2.up * jumpSpeed * Time.deltaTime;
+            rb2D.AddForce(Vector2.up * jumpSpeed * Time.fixedDeltaTime, ForceMode2D.Impulse);
 
         else
         {
             Turn(-lookingDirection);
-            rb2D.velocity += Vector2.up * walledYJumpSpeed * Time.deltaTime;
+            //rb2D.AddForce(new Vector2(3500f, 1500f) * Time.fixedDeltaTime);
+            Vector2 direction = lookingDirection == 1 ? new Vector2(1f, 1f) : new Vector2(-1f, 1f);
+            direction = direction.normalized;
+            rb2D.AddForce(direction * jumpSpeed * Time.fixedDeltaTime, ForceMode2D.Impulse);
         }
 
         jumpsCount++;
@@ -211,19 +215,15 @@ public class MeatBoy : Character
 
     public override void Move(float horizontalAxis)
     {
-        //Move the character by its rigidbody velocity
-        Vector2 velocity = rb2D.velocity;
-        velocity.x = horizontalAxis * speed * Time.deltaTime;
-        //If we walljump, change the way the velocity is added
-        if (wallJumping)
-        {
-            velocity.x += -wallJumpDir * wallJumpXCurve.Evaluate(wallJumpTimer);
+        Vector2 velocity = Vector2.zero;
+        velocity.x = horizontalAxis * airControl * Time.deltaTime;
 
-        }
+        velocity.x = Mathf.Clamp(velocity.x, -speed * Time.deltaTime, airControl * Time.deltaTime);
+        rb2D.velocity += velocity;
 
-        //velocity.x = Mathf.Clamp(velocity.x, -speed * Time.deltaTime, speed * Time.deltaTime);
-        rb2D.velocity = velocity;
-        rb2D.velocity = new Vector2(Mathf.Clamp(rb2D.velocity.x, -speed * Time.deltaTime, speed * Time.deltaTime), rb2D.velocity.y);
+        if (isGrounded)
+            rb2D.velocity = new Vector2(horizontalAxis * speed * Time.deltaTime, rb2D.velocity.y);
+        //rb2D.velocity = new Vector2(Mathf.Clamp(rb2D.velocity.x, -speed * Time.deltaTime, speed * Time.deltaTime), rb2D.velocity.y);
 
     }
 
@@ -258,8 +258,19 @@ public class MeatBoy : Character
     {
         if (collision.tag == "Trap" && !isDead)
         {
-            Debug.Log("die");
             Die();
         }
+        if (collision.GetComponent<MonoBehaviour>() is ICollectable)
+        {
+            ICollectable collectable = (ICollectable)collision.GetComponent<MonoBehaviour>();
+            if (!collectable.GetIsCollected())
+                collectable.Collect();
+        }
     }
+
+    public void SetCanMove(bool toggle) => canMove = toggle;
+
+    public void SetCheckpointPosition(Vector3 newCheckpointPosition) => respawnPosition = newCheckpointPosition;
+
+    public void ResetVelocity() => rb2D.velocity = Vector2.zero;
 }
