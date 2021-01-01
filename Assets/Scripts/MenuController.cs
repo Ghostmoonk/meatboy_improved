@@ -17,4 +17,9 @@ public class MenuController : MonoBehaviour
         Application.Quit();
     }
 
+    public void GoFullScreen(bool isFullScreen)
+    {
+        Screen.SetResolution(1920, 1080, isFullScreen);
+    }
+
 }
