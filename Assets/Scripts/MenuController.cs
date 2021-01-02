@@ -3,13 +3,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Audio;
 
 public class MenuController : MonoBehaviour
 {
 
+    public AudioMixer audioMixer;
+
     public void LoadScene(string SceneName)
     {
         SceneManager.LoadScene(SceneName);
+    }
+
+    public void SetVolume(float volume)
+    {
+        audioMixer.SetFloat("volume", volume);
     }
 
     public void QuitGame()
@@ -17,9 +25,9 @@ public class MenuController : MonoBehaviour
         Application.Quit();
     }
 
-    public void GoFullScreen(bool isFullScreen)
+    public void SetFullScreen(bool isFullScreen)
     {
-        Screen.SetResolution(1920, 1080, isFullScreen);
+        Screen.fullScreen = isFullScreen;
     }
 
 }
