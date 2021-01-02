@@ -26,7 +26,18 @@ public class Keybind : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown(keys["Gauche"]))
+        {
+            //a voir??
+        }
+        if (Input.GetKeyDown(keys["Droite"]))
+        {
 
+        }
+        if (Input.GetKeyDown(keys["Saut"]))
+        {
+
+        }
     }
 
     void OnGUI()
