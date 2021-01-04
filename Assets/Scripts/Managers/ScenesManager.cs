@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Events;
 
 public class ScenesManager : MonoBehaviour
 {
@@ -48,5 +49,37 @@ public class ScenesManager : MonoBehaviour
 #else
              Application.Quit();
 #endif
+    }
+
+    public void SetTimeScale(int newTimeScale) => Time.timeScale = newTimeScale;
+
+    bool gamePaused = false;
+
+    [SerializeField] UnityEvent OnGameUnPaused;
+    [SerializeField] UnityEvent OnGamePaused;
+
+    public void PauseGame(bool toggle)
+    {
+        gamePaused = toggle;
+        if (gamePaused)
+            OnGamePaused?.Invoke();
+        else
+            OnGameUnPaused?.Invoke();
+    }
+
+    private void Update()
+    {
+        if (SceneManager.GetActiveScene().buildIndex != 0 && Input.GetButtonDown("Pause"))
+        {
+            gamePaused = !gamePaused;
+            if (gamePaused)
+            {
+                OnGamePaused?.Invoke();
+            }
+            else
+            {
+                OnGameUnPaused?.Invoke();
+            }
+        }
     }
 }
