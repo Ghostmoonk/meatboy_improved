@@ -253,6 +253,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 515069466}
+        m_TargetAssemblyTypeName: SoundFader, Assembly-CSharp
+        m_MethodName: FadeOut
+        m_Mode: 4
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0.6
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &16021470
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1314,6 +1326,7 @@ GameObject:
   m_Component:
   - component: {fileID: 515069464}
   - component: {fileID: 515069465}
+  - component: {fileID: 515069466}
   m_Layer: 0
   m_Name: Music
   m_TagString: Untagged
@@ -1347,7 +1360,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 24300002, guid: cee553ef7f82df743957b9b0a950aab8, type: 2}
   m_audioClip: {fileID: 8300000, guid: c3dce1367bbe54f449d22c20bb583c23, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.75
+  m_Volume: 0
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -1431,6 +1444,25 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &515069466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 515069463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98656530772ef97418d08d32938aee06, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  startFade: 1
+  startFadeInDuration: 1
+  startFadeInWaitDuration: 0
+  fadeInVolume: 0.75
+  fadeOutVolume: 0
+  animationFadeInEase: 1
+  animationFadeOutEase: 1
 --- !u!1 &561697674
 GameObject:
   m_ObjectHideFlags: 0
